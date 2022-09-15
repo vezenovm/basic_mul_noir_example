@@ -6,61 +6,32 @@ import { readFileSync } from 'fs';
 import { expect } from 'chai';
 import { ethers } from "hardhat";
 import { Contract, ContractFactory, utils } from 'ethers';
+import { BarretenbergWasm } from '@noir-lang/barretenberg/dest/wasm';
+import { SinglePedersen } from '@noir-lang/barretenberg/dest/crypto/pedersen';
 
 describe("1_mul", function() {
+    let barretenberg: BarretenbergWasm;
+    let pedersen: SinglePedersen;
 
-    it("Should verify proof using witness arr", async function() {
-        let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
-        let acir = acir_from_bytes(acirByteArray);
-
-        let witnessByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.tr'));
-        const barretenberg_witness_arr = await packed_witness_to_witness(acir, witnessByteArray);
-
-        let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
-        console.log('created prover and verifier');
-    
-        const proof = await create_proof_with_witness(prover, barretenberg_witness_arr);
-        console.log('proof: ' + proof.toString('hex'));
-    
-        const verified = await verify_proof(verifier, proof);
-
-        expect(verified).eq(true)
-    });
-
-    it("Should verify proof using compute witness", async function() {
-        let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
-        let acir = acir_from_bytes(acirByteArray);
-
-        let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
-        console.log('created prover and verifier');
- 
-        let initial_js_witness = ["0x03", "0x04", "0x5100", "0xA200", "0x5100"];
-        // NOTE: breaks without even number of bytes specified, the line below does not work
-        // let initial_js_witness = ["0x3", "0x4", "0x5100"];
-
-        let barretenberg_witness_arr = compute_witnesses(acir, initial_js_witness);
-        console.log('barretenberg_witness_arr: ' + Buffer.from(barretenberg_witness_arr).toString('hex'));
-
-        const proof = await create_proof_with_witness(prover, barretenberg_witness_arr);
-
-        console.log('proof: ' + proof.toString('hex'));
-    
-        const verified = await verify_proof(verifier, proof);
-
-        expect(verified).eq(true)
+    before(async () => {
+        barretenberg = await BarretenbergWasm.new();
+        await barretenberg.init()
+        pedersen = new SinglePedersen(barretenberg);
     });
 
     it("Should verify proof using abi for typescript", async function() {
-        // let path = "../circuits/src/main.nr"
-
-        // TODO: we can also parse the .toml file, instead of using the ABI
-        // 2) Compile noir program
-
-        // TODO: this breaks when main has a return, can remove return in the circuit and uncomment this to show compile working correctly 
-        // const compiled_program = compile(path.resolve(__dirname, '../circuits/src/main.nr')); 
-        // let acir = compiled_program.circuit;
-        // const abi = compiled_program.abi;
-        // console.dir(acir);
+        let preimage = [
+            Buffer.from('0000000000000000000000000000000000000000000000000000000000000003', 'hex'), 
+            Buffer.from('0000000000000000000000000000000000000000000000000000000000000004', 'hex'), 
+            Buffer.from('0000000000000000000000000000000000000000000000000000000000005100', 'hex'), 
+            Buffer.from('000000000000000000000000000000000000000000000000000000000000A200', 'hex'),
+            Buffer.from('0000000000000000000000000000000000000000000000000000000000005100', 'hex'), 
+        ];
+        console.dir(preimage);
+        // let salt = Buffer.from("0000000000000000000000000000000000000000000000000000000000000032", "hex"); // TODO: normally add salt but don't bother for now until pedersen working
+        let solnHash = pedersen.compressInputs([...preimage]);
+        let solnHashString = `0x` + solnHash.toString('hex');
+        console.log('solnHash: ' + solnHashString); 
 
         let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
         let acir = acir_from_bytes(acirByteArray);
@@ -69,6 +40,7 @@ describe("1_mul", function() {
             x: "0x03",
             y: "0x04",
             z: "0x5100",
+            solnHash: solnHashString,
             return: ["0xA200", "0x5100"],
         }
 
@@ -83,6 +55,81 @@ describe("1_mul", function() {
 
         expect(verified).eq(true)
     });
+
+    // it("Should verify proof using witness arr", async function() {
+    //     let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
+    //     let acir = acir_from_bytes(acirByteArray);
+
+    //     let witnessByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.tr'));
+    //     const barretenberg_witness_arr = await packed_witness_to_witness(acir, witnessByteArray);
+
+    //     let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
+    //     console.log('created prover and verifier');
+    
+    //     const proof = await create_proof_with_witness(prover, barretenberg_witness_arr);
+    //     console.log('proof: ' + proof.toString('hex'));
+    
+    //     const verified = await verify_proof(verifier, proof);
+
+    //     expect(verified).eq(true)
+    // });
+
+    // it("Should verify proof using compute witness", async function() {
+    //     let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
+    //     let acir = acir_from_bytes(acirByteArray);
+
+    //     let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
+    //     console.log('created prover and verifier');
+ 
+    //     let initial_js_witness = ["0x03", "0x04", "0x5100", "0xA200", "0x5100"];
+    //     // NOTE: breaks without even number of bytes specified, the line below does not work
+    //     // let initial_js_witness = ["0x3", "0x4", "0x5100"];
+
+    //     let barretenberg_witness_arr = compute_witnesses(acir, initial_js_witness);
+    //     console.log('barretenberg_witness_arr: ' + Buffer.from(barretenberg_witness_arr).toString('hex'));
+
+    //     const proof = await create_proof_with_witness(prover, barretenberg_witness_arr);
+
+    //     console.log('proof: ' + proof.toString('hex'));
+    
+    //     const verified = await verify_proof(verifier, proof);
+
+    //     expect(verified).eq(true)
+    // });
+
+    // it("Should verify proof using abi for typescript", async function() {
+    //     // let path = "../circuits/src/main.nr"
+
+    //     // TODO: we can also parse the .toml file, instead of using the ABI
+    //     // 2) Compile noir program
+
+    //     // TODO: this breaks when main has a return, can remove return in the circuit and uncomment this to show compile working correctly 
+    //     // const compiled_program = compile(path.resolve(__dirname, '../circuits/src/main.nr')); 
+    //     // let acir = compiled_program.circuit;
+    //     // const abi = compiled_program.abi;
+    //     // console.dir(acir);
+
+    //     let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
+    //     let acir = acir_from_bytes(acirByteArray);
+
+    //     let abi = {
+    //         x: "0x03",
+    //         y: "0x04",
+    //         z: "0x5100",
+    //         return: ["0xA200", "0x5100"],
+    //     }
+
+    //     let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
+    //     console.log('created prover and verifier');
+ 
+    //     const proof = await create_proof(prover, acir, abi);
+
+    //     const verified = await verify_proof(verifier, proof);
+      
+    //     console.log(verified);
+
+    //     expect(verified).eq(true)
+    // });
 
 });
 
