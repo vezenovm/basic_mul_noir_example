@@ -34,7 +34,7 @@ describe("1_mul", function() {
         let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
         console.log('created prover and verifier');
  
-        let initial_js_witness = ["0x03", "0x04", "0x5100", "0xA200", "0x5100"];
+        let initial_js_witness = ["0x03", "0x04", "0x0c"];
         // NOTE: breaks without even number of bytes specified, the line below does not work
         // let initial_js_witness = ["0x3", "0x4", "0x5100"];
 
@@ -68,8 +68,7 @@ describe("1_mul", function() {
         let abi = {
             x: "0x03",
             y: "0x04",
-            z: "0x5100",
-            return: ["0xA200", "0x5100"],
+            return: "0x0c",
         }
 
         let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
@@ -106,9 +105,7 @@ describe('1_mul using solidity verifier', function() {
 
         let public_inputs_hex = [
             "0x0000000000000000000000000000000000000000000000000000000000000004",
-            "0x0000000000000000000000000000000000000000000000000000000000005100",
-            "0x000000000000000000000000000000000000000000000000000000000000A200",
-            "0x0000000000000000000000000000000000000000000000000000000000005100",
+            "0x000000000000000000000000000000000000000000000000000000000000000c",
         ]
         let pubInputsByteArray = hexListToBytes(public_inputs_hex);
         console.log('public_inputs_hex: ', pubInputsByteArray);
