@@ -1,5 +1,4 @@
 setpub = []
 y = "4"
-z = "20736"
+return = "12"
 solnHash = "0x0c070bb89197d2da586701b8d98f8de291be67d2118d0bae3740a1876c8f8ec0"
-return = ["41472", "20736"]
