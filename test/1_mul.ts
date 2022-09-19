@@ -1,4 +1,4 @@
-import { compile, acir_from_bytes, acir_to_bytes } from '@noir-lang/noir_wasm';
+import { compile, acir_from_bytes } from '@noir-lang/noir_wasm';
 import { setup_generic_prover_and_verifier, create_proof, verify_proof, create_proof_with_witness } from '@noir-lang/barretenberg/dest/client_proofs';
 import { packed_witness_to_witness, serialise_public_inputs, compute_witnesses } from '@noir-lang/aztec_backend';
 import path from 'path';
@@ -27,6 +27,49 @@ describe("1_mul", function() {
         expect(verified).eq(true)
     });
 
+    it("Should verify proof using abi and acir from typescript", async function() {
+        // TODO: we can also parse the .toml file, instead of using the ABI
+        // 2) Compile noir program
+        const compiled_program = compile(path.resolve(__dirname, '../circuits/src/main.nr')); 
+        let acir = compiled_program.circuit;
+        const abi = compiled_program.abi;
+        
+        abi.x = "0x03";
+        abi.y = "0x04";
+        abi.return = "0x0c";
+
+        let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
+ 
+        const proof = await create_proof(prover, acir, abi);
+
+        const verified = await verify_proof(verifier, proof);
+      
+        console.log(verified);
+
+        expect(verified).eq(true)
+    });
+
+    it("Should verify proof using acir from file and abi for typescript", async function() {
+        let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
+        let acir = acir_from_bytes(acirByteArray);
+
+        let abi = {
+            x: "0x03",
+            y: "0x04",
+            return: "0x0c",
+        }
+
+        let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
+ 
+        const proof = await create_proof(prover, acir, abi);
+
+        const verified = await verify_proof(verifier, proof);
+      
+        console.log(verified);
+
+        expect(verified).eq(true)
+    });
+
     it("Should verify proof using compute witness", async function() {
         let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
         let acir = acir_from_bytes(acirByteArray);
@@ -39,46 +82,11 @@ describe("1_mul", function() {
         // let initial_js_witness = ["0x3", "0x4", "0x5100"];
 
         let barretenberg_witness_arr = compute_witnesses(acir, initial_js_witness);
-        console.log('barretenberg_witness_arr: ' + Buffer.from(barretenberg_witness_arr).toString('hex'));
+        // console.log('barretenberg_witness_arr: ' + Buffer.from(barretenberg_witness_arr).toString('hex'));
 
         const proof = await create_proof_with_witness(prover, barretenberg_witness_arr);
-
-        console.log('proof: ' + proof.toString('hex'));
     
         const verified = await verify_proof(verifier, proof);
-
-        expect(verified).eq(true)
-    });
-
-    it("Should verify proof using abi for typescript", async function() {
-        // let path = "../circuits/src/main.nr"
-
-        // TODO: we can also parse the .toml file, instead of using the ABI
-        // 2) Compile noir program
-
-        // TODO: this breaks when main has a return, can remove return in the circuit and uncomment this to show compile working correctly 
-        // const compiled_program = compile(path.resolve(__dirname, '../circuits/src/main.nr')); 
-        // let acir = compiled_program.circuit;
-        // const abi = compiled_program.abi;
-        // console.dir(acir);
-
-        let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
-        let acir = acir_from_bytes(acirByteArray);
-
-        let abi = {
-            x: "0x03",
-            y: "0x04",
-            return: "0x0c",
-        }
-
-        let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
-        console.log('created prover and verifier');
- 
-        const proof = await create_proof(prover, acir, abi);
-
-        const verified = await verify_proof(verifier, proof);
-      
-        console.log(verified);
 
         expect(verified).eq(true)
     });
@@ -100,14 +108,14 @@ describe('1_mul using solidity verifier', function() {
         let proofBuffer = readFileSync(path.resolve(__dirname,`../circuits/proofs/p.proof`));
         console.log('proofBuffer: ', proofBuffer.toString());
 
-        const proof = hexToBytes(proofBuffer.toString());
+        const proof = Buffer.from(proofBuffer.toString(), 'hex');
         console.log('proof: ', proof);
 
         let public_inputs_hex = [
-            "0x0000000000000000000000000000000000000000000000000000000000000004",
-            "0x000000000000000000000000000000000000000000000000000000000000000c",
+            "0x04",
+            "0x0c",
         ]
-        let pubInputsByteArray = hexListToBytes(public_inputs_hex);
+        let pubInputsByteArray = serialise_public_inputs(public_inputs_hex);
         console.log('public_inputs_hex: ', pubInputsByteArray);
         
         const verifyResult = await verifierContract.verify(proof, pubInputsByteArray);
@@ -154,33 +162,4 @@ describe('1_mul using solidity verifier', function() {
 function path_to_uint8array(path: string) {
     let buffer = readFileSync(path);
     return new Uint8Array(buffer);
-}
-
-function hexListToBytes(list: string[]) {
-    let rawPubInputs = [];
-    for (let i = 0; i < list.length; i++) {
-      let rawPubInput = utils.arrayify(list[i]);
-      rawPubInputs.push(rawPubInput)
-    }
-    // Get the total length of all arrays.
-    let length = 0;
-    rawPubInputs.forEach(item => {
-      length += item.length;
-    });
-  
-    // Create a new array with total length and merge all source arrays.
-    let mergedRawPubInputs = new Uint8Array(length);
-    let offset = 0;
-    rawPubInputs.forEach(item => {
-      mergedRawPubInputs.set(item, offset);
-      offset += item.length;
-    });
-    return mergedRawPubInputs
-}
-
-// Convert a hex string to a byte array
-function hexToBytes(hex: string) {
-    for (var bytes = [], c = 0; c < hex.length; c += 2)
-        bytes.push(parseInt(hex.substr(c, 2), 16));
-    return bytes;
 }
