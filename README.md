@@ -5,6 +5,12 @@ This project demonstrates a basic example of how to prove and verify Noir circui
 ## Requirements
 
 - Noir is based upon [Rust](https://www.rust-lang.org/tools/install), and we will need to Noir's package manager `nargo` in order to compile our circuits. Further installation instructions for can be found [here](https://noir-lang.github.io/book/getting_started/install.html).
+    - One of the most common issues installing `nargo` is the backend used for solving proofs. If you are having trouble, in the `nargo` crate's `Cargo.toml` you can replace the `aztec_backend` with this line: 
+```
+aztec_backend = { optional = true, git = "https://github.com/noir-lang/aztec_backend", rev = "91fcd5a41a63911cefbc2576efe678900644dffd", default-features = false, features = [
+    "wasm-base",
+] }
+```
 - The typescript tests and contracts live within a hardhat project, where we use [yarn](https://classic.yarnpkg.com/lang/en/docs/install/#mac-stable) as the package manager. 
 
 ## Development
