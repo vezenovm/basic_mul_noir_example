@@ -9,25 +9,6 @@ import { Contract, ContractFactory, utils } from 'ethers';
 
 describe("1_mul", function() {
 
-    it("Should verify proof using witness arr", async function() {
-        let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
-        let acir = acir_from_bytes(acirByteArray);
-        console.log("acir: ", Buffer.from(acirByteArray).toString('hex'));
-
-        let witnessByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.tr'));
-        console.log('witness byte array: ', Buffer.from(witnessByteArray).toString('hex'));
-        const barretenberg_witness_arr = await packed_witness_to_witness(acir, witnessByteArray);
-        console.log('barretenberg_witness_arr: ', Buffer.from(barretenberg_witness_arr).toString('hex'));
-
-        let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
-    
-        const proof = await create_proof_with_witness(prover, barretenberg_witness_arr);
-    
-        const verified = await verify_proof(verifier, proof);
-
-        expect(verified).eq(true)
-    });
-
     it("Should verify proof using abi and acir from typescript", async function() {        
         // Compile noir program
         const compiled_program = compile(path.resolve(__dirname, '../circuits/src/main.nr')); 
@@ -56,9 +37,9 @@ describe("1_mul", function() {
 
         // The abi can also be specified using hex strings, just make sure there is an even number of bytes
         let abi = {
-            x: "0x03",
-            y: "0x04",
-            return: "0x0c",
+            x: 3,
+            y: 4,
+            return: 12,
         }
 
         let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
@@ -72,12 +53,27 @@ describe("1_mul", function() {
         expect(verified).eq(true)
     });
 
+    it("Should verify proof using witness arr", async function() {
+        let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
+        let acir = acir_from_bytes(acirByteArray);
+
+        let witnessByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.tr'));
+        const barretenberg_witness_arr = await packed_witness_to_witness(acir, witnessByteArray);
+
+        let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
+    
+        const proof = await create_proof_with_witness(prover, barretenberg_witness_arr);
+    
+        const verified = await verify_proof(verifier, proof);
+
+        expect(verified).eq(true)
+    });
+
     it("Should verify proof using compute witness", async function() {
         let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
         let acir = acir_from_bytes(acirByteArray);
 
         let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
-        console.log('created prover and verifier');
  
         let initial_js_witness = ["0x03", "0x04", "0x0c"];
         // NOTE: breaks without even number of bytes specified, the line below does not work
