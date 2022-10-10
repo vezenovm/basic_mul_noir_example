@@ -12,15 +12,16 @@ describe("1_mul", function() {
     it("Should verify proof using witness arr", async function() {
         let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
         let acir = acir_from_bytes(acirByteArray);
+        console.log("acir: ", Buffer.from(acirByteArray).toString('hex'));
 
         let witnessByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.tr'));
+        console.log('witness byte array: ', Buffer.from(witnessByteArray).toString('hex'));
         const barretenberg_witness_arr = await packed_witness_to_witness(acir, witnessByteArray);
+        console.log('barretenberg_witness_arr: ', Buffer.from(barretenberg_witness_arr).toString('hex'));
 
         let [prover, verifier] = await setup_generic_prover_and_verifier(acir);
-        console.log('created prover and verifier');
     
         const proof = await create_proof_with_witness(prover, barretenberg_witness_arr);
-        console.log('proof: ' + proof.toString('hex'));
     
         const verified = await verify_proof(verifier, proof);
 

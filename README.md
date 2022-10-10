@@ -1,6 +1,9 @@
 # Standard Noir Example
 
-This project demonstrates a basic example of how to prove and verify Noir circuits in typescript. 
+This project demonstrates a basic example of how to prove and verify Noir circuits in typescript. The test file is purposefully bloated to show the multiple methods available for how to prove/verify circuits in Typescript. This will continue to be updated as updates are made to the Noir tooling. If you want a plain template to act as a starting point you can reference the two implementation below:
+
+ - [nplate](https://github.com/whitenois3/nplate)
+ - [noir-template](https://github.com/TomAFrench/noir-template)
 
 ## Requirements
 
@@ -28,7 +31,9 @@ cd circuits/
 nargo compile p
 ```
 
-We use these three packages to interact with the ACIR. `@noir-lang/noir_wasm` to serialize the ACIR from file. 
+We use these three packages to interact with the ACIR. `@noir-lang/noir_wasm`, `@noir-lang/barretenberg`, and `@noir-lang/aztec_backend`.
+
+`@noir-lang/noir_wasm` is usedto serialize the ACIR from file. 
 ```
 let acirByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.acir'));
 let acir = acir_from_bytes(acirByteArray);
@@ -65,6 +70,31 @@ The `verify_proof` method then takes in the previously generated verifier and pr
 ```
 const verified = await verify_proof(verifier, proof);
 ```
+
+The tests also show how to use the `@noir-lang/aztec_backend` package for interactions with the witness. You must use this package to accurately read in the witness computed by `nargo compile`
+
+```
+let witnessByteArray = path_to_uint8array(path.resolve(__dirname, '../circuits/build/p.tr'));
+const barretenberg_witness_arr = await packed_witness_to_witness(acir, witnessByteArray);
+```
+
+The `barretenberg_witness_arr` is what will be used as such:
+
+```
+const proof = await create_proof_with_witness(prover, barretenberg_witness_arr);
+```
+
+You can also use the `@noir-lang/aztec_backend` package for computing the witness directly in Typescript.
+
+```
+let initial_js_witness = ["0x03", "0x04", "0x0c"];
+// NOTE: breaks without even number of bytes specified, the line below does not work
+// let initial_js_witness = ["0x3", "0x4", "0x5100"];
+
+let barretenberg_witness_arr = compute_witnesses(acir, initial_js_witness);
+```
+
+Note though that unlike the abi shown previously, the circuit inputs provided must be in a flattened array rather than a JS object.
 
 ### Solidity Verifier
 
