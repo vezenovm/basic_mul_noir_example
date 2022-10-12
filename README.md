@@ -1,6 +1,6 @@
 # Standard Noir Example
 
-This project demonstrates a basic example of how to prove and verify Noir circuits in typescript. The test file is purposefully bloated to show the multiple methods available for how to prove/verify circuits in Typescript. This will continue to be updated as updates are made to the Noir tooling. If you want a plain template to act as a starting point you can reference the two implementation below:
+This project demonstrates a basic example of how to prove and verify Noir circuits in typescript. The test file is purposefully bloated to show the multiple methods available for how to prove/verify circuits in Typescript. This repo will continue to be updated as changes are made to the Noir tooling. If you want a plain template to act as a starting point you can reference the two implementation below:
 
  - [nplate](https://github.com/whitenois3/nplate)
  - [noir-template](https://github.com/TomAFrench/noir-template)
