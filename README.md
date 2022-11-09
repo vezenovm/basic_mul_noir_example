@@ -28,8 +28,10 @@ After installing nargo it should be placed in our path and can be called from in
 
 ```shell
 cd circuits/
-nargo compile p
+nargo compile p --witness
 ```
+
+The `--witness` flag uses the inputs from the `Prover.toml` to solve the witness and write it to file. Only one of the example tests requires that the solved witness is also read from file. If you prefer to specify your circuit inputs in Typescript you can use just `nargo compile p` which will only write the ACIR to file and the witness will be solved when creating the proof.
 
 We use these three packages to interact with the ACIR. `@noir-lang/noir_wasm`, `@noir-lang/barretenberg`, and `@noir-lang/aztec_backend`.
 
@@ -104,6 +106,8 @@ In the `scripts` folder you will find a script for compiling a program and gener
 ```
 npx ts-node ./scripts/generate_sol_verifier.ts
 ```
+
+This script uses the `compile` method to generate the ACIR directly in Typescript. It can be changed to use the ACIR from file, just make sure in your tests that the proof being generated to verify against the Solidity verifier uses the same method for fetching the ACIR. This will help avoid any chance of a mismatch between the ACIR generated in Typescript or natively through nargo. 
 
 ### Running tests
 
